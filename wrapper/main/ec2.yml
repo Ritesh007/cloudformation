@@ -1,0 +1,10 @@
+---
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation Sample Template EC2'
+
+Resources:
+  EC2Instance:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-45fczis6k7di-us-east-1/modules/ec2/main.yml
