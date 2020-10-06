@@ -1,0 +1,4 @@
+aws cloudformation validate-template --template-body file://parameters.yml
+aws cloudformation create-stack --stack-name ec2-parameters --template-body file://parameters.yml --parameters ParameterKey=InstanceType,ParameterValue=t2.micro
+aws cloudformation describe-stacks --stack-name ec2-parameters
+aws cloudformation delete-stack --stack-name ec2-parameters
