@@ -1,0 +1,252 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "cfn rds base template for mysql, postgres, mssql and oracle"
+Parameters:
+  awsEnv:
+    Default: dev
+    Type: String
+    AllowedValues: [dev, dev01, int, int01, uat, uat01, prd, prd01]
+    Description: Environment.
+  appCode:
+    Default: "sys"  
+    Type: String
+    MinLength: 3
+    MaxLength: 5
+    Description: A unique application code in the deployment.
+    ConstraintDescription: limit upto 5 characters.
+  appName:
+    Type: String
+    MinLength: 3
+    MaxLength: 25
+    Description: appName identifies the application name.
+    ConstraintDescription: limit upto 10 characters.
+  rdsBaseAllocatedStorage:
+    Default: '20'
+    Type: Number
+    MinValue: '20'
+    MaxValue: '6000'
+    Description: The size of the database (Gb).
+    ConstraintDescription: Must be between 20-6000.
+  rdsBaseAllowMajorVersionUpgrade:
+    Default: true
+    Type: String
+    AllowedValues: [true, false]
+    Description: Indicates major engine upgrades.
+  rdsBaseAutoMinorVersionUpgrade:
+    Default: true
+    Type: String
+    AllowedValues: [true, false]
+    Description: Indicates minor engine upgrades.
+  rdsBaseBackupRetentionPeriod:
+    Default: '1'
+    Type: Number
+    MinValue: '0'
+    MaxValue: '8'
+    Description: The number of days for which automated backups are retained.
+    ConstraintDescription: Minimum is 0 and Maximun is 8.
+  rdsBaseCopyTagsToSnapshot:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: A value that indicates whether to copy tags from the DB instance to snapshots of the DB instance.
+  rdsBaseDBInstanceClass:
+    Default: db.r4.xlarge
+    Type: String
+    Description: The compute and memory capacity of the DB instance.
+  rdsBaseDBSubnetGroupName:
+    Type: String
+    Description: Specify DBSubnetGroupName
+  rdsBaseDeleteAutomatedBackups:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: A value that indicates whether to remove automated backups immediately after the DB instance is deleted
+  rdsBaseDBName:
+    Type: String
+    Description: The name of the DB instance. Assign an empty string for this if the engine is mssql.
+  rdsBaseDeletionProtection:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: A value that indicates whether to remove automated backups immediately after the DB instance is deleted.
+  rdsBaseEnablePerformanceInsights:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: A value that indicates whether to enable Performance Insights for the DB instance.
+  rdsBaseEngine: 
+    Type: String
+    Description: RDS Engine type.
+  rdsBaseEngineVersion:
+    Type: String
+    Description: RDS Engine Version.
+  rdsBaseEnableIAMDatabaseAuthentication:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: A value that indicates whether to enable mapping of AWS Identity and Access Management (IAM) accounts to database accounts.
+  rdsBasePort:
+    Default: 3306
+    Type: Number
+    Description: The port number on which the database accepts connections.
+  rdsBaseIops:
+    Default: '1000'
+    Type: Number
+    MinValue: '1000'
+    Description: The number of I/O operations per second (IOPS) that the database provisions
+    ConstraintDescription: Minimum value is 1000.
+  rdsBaseStorageType:
+    Default: 'gp2'
+    Type: String
+    AllowedValues: ['gp2', 'io1']
+    Description: Specifies the storage type to be associated with the DB instance.
+  rdsBaseStorageEncrypted:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: Specifies the storage type to be associated with the DB instance.
+  rdsBasePubliclyAccessible:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: Indicates whether the DB instance is an internet-facing instance.
+  rdsBasePreferredBackupWindow:
+    Type:           String
+    Default:        02:00-03:00
+    Description:    RDS DB preferred backup window
+  rdsBasePreferredMaintenanceWindow:
+    Type:           String
+    Default:        mon:03:00-mon:04:00
+    Description:    RDS DB instance preferred maintenance window
+  rdsBaseKmsKeyArn:
+    Type: String
+    Default: ''
+    Description: The Amazon Resource Name (ARN) of the AWS Key Management Service master key that is used to encrypt the database instances.
+  rdsBaseDBSnapshotIdentifier:
+    Type: String
+    Default: ''
+    Description: The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance.
+  rdsBaseMasterUser:
+    Type: String
+    MinLength: '8'
+    MaxLength: '16'
+    Description: The database admin account username.
+    ConstraintDescription: Minimum Length is 8 and Maximum is 16.
+  rdsBaseMasterUserPassword:
+    Type: String
+    NoEcho: true
+    MinLength: '8'
+    MaxLength: '41'
+    Description: Master RDS password. Minimum Length is 8.
+    ConstraintDescription: Minimum Length is 8 and Maximum is 41.
+  rdsBaseMultiAZ:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: Specifies whether the database instance is a multiple Availability Zone deployment.
+  rdsBaseVPCSecurityGroup:
+    Type: String
+    Description: Specify SecurityGroup.
+  rdsBaseReadReplica:
+    Default: false
+    Type: String
+    AllowedValues: [true, false]
+    Description: Create ReadReplica. This should be false for sql server.
+  rdsBaseParameterGroup:
+    Type: String
+    Description: RDS Parameter Group.
+  rdsBaseLicenseModel:
+    Default: 'general-public-license'
+    Type: String
+    AllowedValues: ['bring-your-own-license', 'license-included', 'general-public-license', 'postgresql-license']
+    Description: RDS License Model.
+Conditions:
+  rdsBaseStorageTypeCheck: !Equals [ !Ref rdsBaseStorageType, 'io1' ]
+  hasDBSnapshotIdentifier: !Not [!Equals [!Ref rdsBaseDBSnapshotIdentifier, '']]
+  isMultiAZ: !Equals [ !Ref rdsBaseMultiAZ, true ]
+  createReadReplica: !Equals [ !Ref rdsBaseReadReplica, true ]
+Resources:
+  rdsBaseDB:
+    Type: "AWS::RDS::DBInstance"
+    DeletionPolicy: Snapshot
+    Properties: 
+      AllocatedStorage: !Ref rdsBaseAllocatedStorage
+      AllowMajorVersionUpgrade: !Ref rdsBaseAllowMajorVersionUpgrade
+      AutoMinorVersionUpgrade: !Ref rdsBaseAutoMinorVersionUpgrade
+      BackupRetentionPeriod: !Ref rdsBaseBackupRetentionPeriod
+      CopyTagsToSnapshot: !Ref rdsBaseCopyTagsToSnapshot
+      DBInstanceIdentifier: !Sub "${appCode}-${appName}-${awsEnv}-${AWS::Region}" 
+      DBInstanceClass: !Ref rdsBaseDBInstanceClass
+      DBName: !Ref rdsBaseDBName
+      DBParameterGroupName: !Ref rdsBaseParameterGroup
+      DBSubnetGroupName: !Ref rdsBaseDBSubnetGroupName
+      DeleteAutomatedBackups: !Ref rdsBaseDeleteAutomatedBackups
+      DeletionProtection: !Ref rdsBaseDeletionProtection
+      EnableIAMDatabaseAuthentication: !Ref rdsBaseEnableIAMDatabaseAuthentication
+      EnablePerformanceInsights: !Ref rdsBaseEnablePerformanceInsights
+      Engine: !Ref rdsBaseEngine
+      EngineVersion: !Ref rdsBaseEngineVersion
+      KmsKeyId: !Ref rdsBaseKmsKeyArn
+      MasterUserPassword: !If [hasDBSnapshotIdentifier, !Ref 'AWS::NoValue', !Ref rdsBaseMasterUserPassword]
+      MasterUsername: !If [hasDBSnapshotIdentifier, !Ref 'AWS::NoValue', !Ref rdsBaseMasterUser]
+      DBSnapshotIdentifier: !If [hasDBSnapshotIdentifier, !Ref rdsBaseDBSnapshotIdentifier, !Ref 'AWS::NoValue']
+      MultiAZ: !Ref rdsBaseMultiAZ
+      Port: !Ref rdsBasePort
+      PreferredBackupWindow: !Ref rdsBasePreferredBackupWindow
+      PreferredMaintenanceWindow: !Ref rdsBasePreferredMaintenanceWindow
+      PubliclyAccessible: !Ref rdsBasePubliclyAccessible
+      StorageEncrypted: !Ref rdsBaseStorageEncrypted
+      StorageType: !Ref rdsBaseStorageType 
+      Iops: !If [ rdsBaseStorageTypeCheck, !Ref rdsBaseIops, !Ref "AWS::NoValue"]
+      LicenseModel: !Ref rdsBaseLicenseModel
+      VPCSecurityGroups:
+        - !Ref rdsBaseVPCSecurityGroup
+      Tags: 
+        - Key: awsEnv
+          Value: !Ref awsEnv
+        - Key: Name
+          Value: !Sub '${appCode}-${appName}-${awsEnv}-${AWS::Region}'
+        - Key: appCode
+          Value: !Ref appCode
+  rdsReplica:
+    Type: 'AWS::RDS::DBInstance'
+    Condition: createReadReplica
+    Properties:
+      SourceDBInstanceIdentifier: !Ref rdsBaseDB
+      DBInstanceIdentifier: !Sub "${appCode}-${appName}-readreplica-${awsEnv}-${AWS::Region}" 
+      DBInstanceClass: !Ref rdsBaseDBInstanceClass
+      Tags:
+        - Key: awsEnv
+          Value: !Ref awsEnv
+        - Key: Name
+          Value: !Sub '${appCode}-${appName}-rdsBaseReadReplica-${awsEnv}-${AWS::Region}'
+        - Key: appCode
+          Value: !Ref appCode
+Outputs:
+  rdsBaseDBEndpointAddress:
+    Description: RDS Endpoint
+    Value: !GetAtt rdsBaseDB.Endpoint.Address
+    Export:
+      Name: !Sub "${appCode}-${appName}-rdsBaseEndpointURL-${awsEnv}-${AWS::Region}"
+  rdsBaseDBEndpointPort:
+    Description: RDS Endpoint Port
+    Value: !GetAtt rdsBaseDB.Endpoint.Port
+    Export:
+      Name: !Sub "${appCode}-${appName}-rdsBaseEndpointPort-${awsEnv}--${AWS::Region}"
+  rdsBaseMasterUser:
+    Description: RDS Database admin account user
+    Value: !Ref rdsBaseMasterUser
+    Export:
+      Name: !Sub "${appCode}-${appName}-rdsBaseMasterUser-${awsEnv}-${AWS::Region}"
+  rdsBaseReadReplicaDBEndpointAddress:
+    Description: RDS ReadReplica Endpoint
+    Value: !GetAtt rdsReplica.Endpoint.Address
+    Condition: createReadReplica
+    Export:
+      Name: !Sub "${appCode}-${appName}-rdsBaseReadReplicaEndpointURL-${awsEnv}-${AWS::Region}"
+  rdsBaseReadReplicaDBEndpointPort:
+    Description: RDS ReadReplica Endpoint Port
+    Value: !GetAtt rdsReplica.Endpoint.Port
+    Condition: createReadReplica
+    Export:
+      Name: !Sub "${appCode}-${appName}-rdsBaseReadReplicaEndpointPort-${awsEnv}-${AWS::Region}"

@@ -1,0 +1,52 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "cfn rds base parameter template for postgres 11"
+Parameters:
+  awsEnv:
+    Default: dev
+    Type: String
+    AllowedValues: [dev, dev01, int, int01, uat, uat01, prd, prd01]
+    Description: Environment.
+  appCode:
+    Default: "nbf"  
+    Type: String
+    MinLength: 3
+    MaxLength: 5
+    Description: A unique application code in the deployment.
+    ConstraintDescription: limit upto 5 characters.
+  appName:
+    Type: String
+    MinLength: 3
+    MaxLength: 25
+    Description: appName identifies the application name.
+    ConstraintDescription: limit upto 10 characters.
+  rdsBaseInstanceParamGroupFamily:
+    Type: String
+    Default: postgres11
+    Description: Specify instance parameter group name  
+Resources:
+  rdsBaseParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Postgres RDS Parameter Group
+      Family: !Ref rdsBaseInstanceParamGroupFamily
+      Parameters:
+          shared_preload_libraries: pg_stat_statements
+          log_statement: all
+          log_connection: 1
+          log_lock_waits": 1
+          rds.log_retention_period: 10080
+          client_encoding: utf8
+      Tags:
+        - Key: awsEnv
+          Value: !Ref awsEnv
+        - Key: Name
+          Value: !Sub '${appCode}-${appName}-InstancePg-${awsEnv}-${AWS::Region}'
+        - Key: appCode
+          Value: !Ref appCode
+Outputs:
+  rdsBaseParameterGroup:
+    Description: RDS Base Instance Parameter Group
+    Value: !Ref rdsBaseParameterGroup
+    Export:
+      Name: !Sub "${appCode}-${appName}-InstancePg-${awsEnv}-${AWS::Region}"   
