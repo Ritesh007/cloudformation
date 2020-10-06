@@ -1,0 +1,4 @@
+aws cloudformation validate-template --template-body file://imports-outputs-main.yml
+aws cloudformation create-stack --stack-name ec2-imports-outputs --template-body file://imports-outputs-main.yml --parameters ParameterKey=InstanceType,ParameterValue=t2.micro
+aws cloudformation describe-stacks --stack-name ec2-imports-outputs
+aws cloudformation delete-stack --stack-name ec2-imports-outputs
